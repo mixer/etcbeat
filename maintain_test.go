@@ -1,4 +1,4 @@
-package etcd
+package etcbeat
 
 import (
 	"errors"

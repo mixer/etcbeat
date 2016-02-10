@@ -1,4 +1,4 @@
-package etcd
+package etcbeat
 
 import (
 	"log"
@@ -29,8 +29,8 @@ type Maintainer struct {
 	// How often we attempt to refresh etcd keys. This is slightly shorter
 	// than the TTL so they we never "lose" keys.
 	Interval time.Duration
-	// Context used for making calls to etcd.
-	Context context.Context
+	// Context generator used for making calls to etcd.
+	Context func() context.Context
 	// Etcd key this maintainer operates on.
 	Key string
 
@@ -51,14 +51,16 @@ type GetSetAPI interface {
 // Creates and returns a new maintainer, which calls the updater function
 // periodically with a ttl.
 func NewMaintainer(api GetSetAPI, key string, updater Updater, deleter Deleter) *Maintainer {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(ttlDelta))
 
 	return &Maintainer{
 		API:      api,
 		TTL:      ttlDefault + ttlDelta,
 		Interval: ttlDefault,
-		Context:  ctx,
-		Key:      key,
+		Context: func() context.Context {
+			ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(ttlDelta))
+			return ctx
+		},
+		Key: key,
 
 		clock:  clock.New(),
 		errors: make(chan error, 4),
@@ -88,7 +90,7 @@ func (m *Maintainer) logError(err error) {
 // Creates and returns a new maintainer to keep a kv pair alive.
 func NewKeyMaintainer(api GetSetAPI, key, value string) *Maintainer {
 	return NewMaintainer(api, key, func(m *Maintainer) error {
-		_, err := m.API.Set(m.Context, m.Key, value, &etcd.SetOptions{TTL: m.TTL})
+		_, err := m.API.Set(m.Context(), m.Key, value, &etcd.SetOptions{TTL: m.TTL})
 		return err
 	}, func(m *Maintainer) error {
 		_, err := m.API.Delete(context.Background(), key, nil)
@@ -101,7 +103,7 @@ func NewKeyMaintainer(api GetSetAPI, key, value string) *Maintainer {
 // missed.
 func NewDirMaintainer(api GetSetAPI, dir string, setContents func(m *Maintainer) error) *Maintainer {
 	return NewMaintainer(api, dir, func(m *Maintainer) error {
-		_, err := m.API.Set(m.Context, m.Key, "", &etcd.SetOptions{
+		_, err := m.API.Set(m.Context(), m.Key, "", &etcd.SetOptions{
 			TTL:       m.TTL,
 			Dir:       true,
 			PrevExist: etcd.PrevExist,
@@ -115,7 +117,7 @@ func NewDirMaintainer(api GetSetAPI, dir string, setContents func(m *Maintainer)
 			return err
 		}
 
-		if _, err := m.API.Set(m.Context, m.Key, "", &etcd.SetOptions{TTL: m.TTL, Dir: true}); err != nil {
+		if _, err := m.API.Set(m.Context(), m.Key, "", &etcd.SetOptions{TTL: m.TTL, Dir: true}); err != nil {
 			return err
 		}
 
