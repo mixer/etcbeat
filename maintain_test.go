@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
-	"context"
 
+	"golang.org/x/net/context"
 	"github.com/benbjohnson/clock"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/stretchr/testify/assert"
