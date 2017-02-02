@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"context"
 
 	"github.com/benbjohnson/clock"
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
