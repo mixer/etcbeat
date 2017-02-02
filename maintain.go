@@ -3,9 +3,9 @@ package etcbeat
 import (
 	"log"
 	"time"
+	"context"
 
 	"github.com/benbjohnson/clock"
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 	etcd "github.com/coreos/etcd/client"
 )
 
